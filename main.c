@@ -3,12 +3,18 @@
 #include "pico/stdlib.h"
 
 #define RELAY_GPIO 15
+#define RELAY_GPIO2 14
+#define RELAY_GPIO3 26
+#define RELAY_GPIO4 27
 #define LED_GPIO 25
 #define RELAY_ACTIVE_LEVEL 1  // Change to 0 for an active-low relay module.
 
 static void relay_set(bool on) {
     bool level = on ? RELAY_ACTIVE_LEVEL : !RELAY_ACTIVE_LEVEL;
     gpio_put(RELAY_GPIO, level);
+    gpio_put(RELAY_GPIO2, level);
+    gpio_put(RELAY_GPIO3, !level);
+    gpio_put(RELAY_GPIO4, !level);
     gpio_put(LED_GPIO, on);
 }
 
@@ -17,6 +23,12 @@ int main(void) {
 
     gpio_init(RELAY_GPIO);
     gpio_set_dir(RELAY_GPIO, GPIO_OUT);
+    gpio_init(RELAY_GPIO2);
+    gpio_set_dir(RELAY_GPIO2, GPIO_OUT);
+    gpio_init(RELAY_GPIO3);
+    gpio_set_dir(RELAY_GPIO3, GPIO_OUT);
+    gpio_init(RELAY_GPIO4);
+    gpio_set_dir(RELAY_GPIO4, GPIO_OUT);
     gpio_init(LED_GPIO);
     gpio_set_dir(LED_GPIO, GPIO_OUT);
     relay_set(false);

@@ -1,14 +1,23 @@
-# Raspberry Pi Pico GPIO15 relay controller
+# Raspberry Pi Pico GPIO15/GPIO14 relay controller
 
-This Pico SDK project exposes the Pico USB connector as a Windows virtual COM port. Send a line containing `1` or `ON` to assert GPIO15, and `0` or `OFF` to deassert it. The Pico's built-in LED on GPIO25 indicates when the relay is on.
+This Pico SDK project exposes the Pico USB connector as a Windows virtual COM port. Send a line containing `1` or `ON` to assert GPIO15 and GPIO14 together, and `0` or `OFF` to deassert them. The Pico's built-in LED on GPIO25 indicates when the relay is on.
 
 ## Wiring
 
 For a 3.3 V relay module whose input is compatible with 3.3 V logic:
 
 - Pico pin 21, GP15 -> relay IN
+- Pico pin 19, GP14 -> second relay IN
 - Pico pin 36, 3V3(OUT) -> relay VCC
 - Pico GND -> relay GND
+
+For the 5V relay module from Sain Smart, the relay logic is inverted relative to GPIO15. Use GPIO26 and GPIO27:
+
+- Pico pin 31, GP26 -> relay IN
+- Pico pin 32, GP27 -> second relay IN
+- Relay VCC -> 5V supply
+
+The Sain Smart 5V relay module operates from 5V. Its inputs have internal pull-ups, so the Pico's 3.3V GPIO outputs can drive them directly without using open-drain mode.
 
 Do not power a bare relay coil directly from GP15. Use a transistor/MOSFET driver and flyback diode. Confirm the relay coil current is within the Pico 3.3 V supply budget.
 
