@@ -7,7 +7,15 @@
 #define RELAY_GPIO3 26
 #define RELAY_GPIO4 27
 #define LED_GPIO 25
+#define GPIO28_INT 28
 #define RELAY_ACTIVE_LEVEL 1  // Change to 0 for an active-low relay module.
+#define GPIO28_CHECK_DELAY_MS 5000
+
+static volatile uint32_t relay_on_counter = 0;
+static volatile uint32_t success_count = 0;
+static volatile uint32_t fail_count = 0;
+static volatile bool delayed_c_check_pending = false;
+static volatile absolute_time_t delayed_c_check_time = 0;
 
 static void relay_set(bool on) {
     bool level = on ? RELAY_ACTIVE_LEVEL : !RELAY_ACTIVE_LEVEL;
@@ -16,6 +24,18 @@ static void relay_set(bool on) {
     gpio_put(RELAY_GPIO3, !level);
     gpio_put(RELAY_GPIO4, !level);
     gpio_put(LED_GPIO, on);
+}
+
+static void command_c_check(bool relay_on) {
+    if (relay_on && gpio_get(GPIO28_INT)) {
+        success_count++;
+    } else {
+        fail_count++;
+    }
+
+    printf("success_count=%lu fail_count=%lu\r\n",
+           (unsigned long)success_count,
+           (unsigned long)fail_count);
 }
 
 int main(void) {
@@ -31,19 +51,29 @@ int main(void) {
     gpio_set_dir(RELAY_GPIO4, GPIO_OUT);
     gpio_init(LED_GPIO);
     gpio_set_dir(LED_GPIO, GPIO_OUT);
+
+    gpio_init(GPIO28_INT);
+    gpio_set_dir(GPIO28_INT, GPIO_IN);
+    gpio_pull_down(GPIO28_INT);
+
     relay_set(false);
 
     // Give Windows time to enumerate the USB CDC COM port.
     sleep_ms(1500);
 
     printf("Pico relay controller ready\r\n");
-    printf("Commands: 1/ON, 0/OFF, T/TOGGLE, ?/STATUS\r\n");
+    printf("Commands: 1/ON, 0/OFF, T/TOGGLE, ?/STATUS, c\r\n");
 
     bool relay_on = false;
     char command[32];
     size_t length = 0;
 
     while (true) {
+        if (delayed_c_check_pending && absolute_time_diff_us(delayed_c_check_time, get_absolute_time()) >= GPIO28_CHECK_DELAY_MS * 1000) {
+            delayed_c_check_pending = false;
+            command_c_check(relay_on);
+        }
+
         int ch = getchar_timeout_us(10000);
         if (ch == PICO_ERROR_TIMEOUT) {
             tight_loop_contents();
@@ -57,20 +87,34 @@ int main(void) {
             if (!strcmp(command, "1") || !strcmp(command, "ON") || !strcmp(command, "on")) {
                 relay_on = true;
                 relay_set(true);
-                printf("RELAY ON\r\n");
+                relay_on_counter++;
+                delayed_c_check_pending = true;
+                delayed_c_check_time = get_absolute_time();
+                printf("RELAY ON count=%lu\r\n", (unsigned long)relay_on_counter);
             } else if (!strcmp(command, "0") || !strcmp(command, "OFF") || !strcmp(command, "off")) {
                 relay_on = false;
+                delayed_c_check_pending = false;
                 relay_set(false);
                 printf("RELAY OFF\r\n");
             } else if (!strcmp(command, "T") || !strcmp(command, "t") ||
                        !strcmp(command, "TOGGLE") || !strcmp(command, "toggle")) {
                 relay_on = !relay_on;
                 relay_set(relay_on);
-                printf("RELAY %s\r\n", relay_on ? "ON" : "OFF");
+                if (relay_on) {
+                    relay_on_counter++;
+                    delayed_c_check_pending = true;
+                    delayed_c_check_time = get_absolute_time();
+                    printf("RELAY ON count=%lu\r\n", (unsigned long)relay_on_counter);
+                } else {
+                    delayed_c_check_pending = false;
+                    printf("RELAY OFF\r\n");
+                }
             } else if (!strcmp(command, "?") || !strcmp(command, "STATUS") || !strcmp(command, "status")) {
-                printf("RELAY %s\r\n", relay_on ? "ON" : "OFF");
+                printf("RELAY %s count=%lu\r\n", relay_on ? "ON" : "OFF", (unsigned long)relay_on_counter);
+            } else if (!strcmp(command, "C") || !strcmp(command, "c")) {
+                command_c_check(relay_on);
             } else {
-                printf("ERROR: use 1, 0, ON, OFF, T, or ?\r\n");
+                printf("ERROR: use 1, 0, ON, OFF, T, C, or ?\r\n");
             }
             length = 0;
         } else if (length < sizeof(command) - 1) {
