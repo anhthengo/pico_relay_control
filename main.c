@@ -81,7 +81,7 @@ int main(void) {
     sleep_ms(1500);
 
     printf("Pico relay controller ready\r\n");
-    printf("Commands: 1/ON, 0/OFF, T/TOGGLE, ?/STATUS, c\r\n");
+    printf("Commands: 1/ON, 0/OFF, T/TOGGLE, ?/STATUS, c, s, f, a\r\n");
 
     bool relay_on = false;
     char command[32];
@@ -138,8 +138,17 @@ int main(void) {
                 printf("RELAY %s count=%lu\r\n", relay_on ? "ON" : "OFF", (unsigned long)relay_on_counter);
             } else if (!strcmp(command, "C") || !strcmp(command, "c")) {
                 command_c_check(relay_on);
+            } else if (!strcmp(command, "S") || !strcmp(command, "s")) {
+                printf("success_count=%lu\r\n", (unsigned long)success_count);
+            } else if (!strcmp(command, "F") || !strcmp(command, "f")) {
+                printf("fail_count=%lu\r\n", (unsigned long)fail_count);
+            } else if (!strcmp(command, "A") || !strcmp(command, "a")) {
+                printf("relay_count=%lu success_count=%lu fail_count=%lu\r\n",
+                       (unsigned long)relay_on_counter,
+                       (unsigned long)success_count,
+                       (unsigned long)fail_count);
             } else {
-                printf("ERROR: use 1, 0, ON, OFF, T, C, or ?\r\n");
+                printf("ERROR: use 1, 0, ON, OFF, T, C, S, F, A, or ?\r\n");
             }
             length = 0;
         } else if (length < sizeof(command) - 1) {
