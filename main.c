@@ -7,10 +7,10 @@
 #define RELAY_GPIO3 26
 #define RELAY_GPIO4 27
 #define LED_GPIO 25
-#define GPIO28_INT 28
-#define GPIO29_OUT 29
+#define DEBUGGING_PSU_DET 28
+#define SAMPLING_PSU_DETECT_PIN 29
 #define RELAY_ACTIVE_LEVEL 1  // Change to 0 for an active-low relay module.
-#define GPIO28_CHECK_DELAY_MS 100  // Delay before checking GPIO28 after relay is turned on.
+#define GPIO28_CHECK_DELAY_MS 100  // Delay before checking DEBUGGING_PSU_DET after relay is turned on.
 
 static volatile uint32_t relay_on_counter = 0;
 static volatile uint32_t success_count = 0;
@@ -21,7 +21,7 @@ static volatile bool relay_counter_enabled = true;
 
 static void set_relay_counter_enabled(bool enabled) {
     relay_counter_enabled = enabled;
-    gpio_put(GPIO29_OUT, enabled ? 1 : 0);
+    gpio_put(SAMPLING_PSU_DETECT_PIN, enabled ? 1 : 0);
 }
 
 static void relay_set(bool on) {
@@ -38,12 +38,16 @@ static void command_c_check(bool relay_on) {
         printf("RELAY ON count disabled\r\n");
         return;
     }
-    if (relay_on && gpio_get(GPIO28_INT)) {
+
+    bool psu_detected = gpio_get(DEBUGGING_PSU_DET) != 0;
+    if (relay_on && psu_detected) {
         success_count++;
     } else {
         fail_count++;
     }
+
     set_relay_counter_enabled(false);
+    printf("PSU %s\r\n", psu_detected ? "detected" : "not detected");
     printf("success_count=%lu fail_count=%lu\r\n",
            (unsigned long)success_count,
            (unsigned long)fail_count);
@@ -63,12 +67,12 @@ int main(void) {
     gpio_init(LED_GPIO);
     gpio_set_dir(LED_GPIO, GPIO_OUT);
 
-    gpio_init(GPIO29_OUT);
-    gpio_set_dir(GPIO29_OUT, GPIO_OUT);
+    gpio_init(SAMPLING_PSU_DETECT_PIN);
+    gpio_set_dir(SAMPLING_PSU_DETECT_PIN, GPIO_OUT);
 
-    gpio_init(GPIO28_INT);
-    gpio_set_dir(GPIO28_INT, GPIO_IN);
-    gpio_pull_down(GPIO28_INT);
+    gpio_init(DEBUGGING_PSU_DET);
+    gpio_set_dir(DEBUGGING_PSU_DET, GPIO_IN);
+    gpio_pull_down(DEBUGGING_PSU_DET);
 
     set_relay_counter_enabled(relay_counter_enabled);
     relay_set(false);

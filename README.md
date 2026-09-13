@@ -19,6 +19,13 @@ For the 5V relay module from Sain Smart, the relay logic is inverted relative to
 
 The Sain Smart 5V relay module operates from 5V. Its inputs have internal pull-ups, so the Pico's 3.3V GPIO outputs can drive them directly without using open-drain mode.
 
+PSU debug / detection wiring:
+
+- Pico pin 34, GP28 -> SAM_DEBUG_GPIO (PSU detected input)
+- Pico pin 40, GP29 -> SAMPLING_PSU_DETECT_PIN (output sampled while the firmware reads DEBUGGING_PSU_DET)
+
+The firmware reads GP28 as the DEBUGGING_PSU_DET input and, when the firmware samples that pin, drives GP29 as SAMPLING_PSU_DETECT_PIN high when the relay counter is enabled and low when it is disabled.
+
 Do not power a bare relay coil directly from GP15. Use a transistor/MOSFET driver and flyback diode. Confirm the relay coil current is within the Pico 3.3 V supply budget.
 
 ## Build on Windows
