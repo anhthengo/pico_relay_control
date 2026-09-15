@@ -90,3 +90,7 @@ py host_control.py COM7 status
 ```
 
 Replace `COM7` with the port shown in Device Manager.
+
+## SAM FW support
+
+Any SAM FW works fine.  But to enable the feedback using the SAM_DEBUG_GPIO, use this SAM branch personal/anhngo/use_debug_gpio_for_surflink
