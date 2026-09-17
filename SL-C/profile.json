@@ -1,0 +1,98 @@
+{
+  "programName": "BAA",
+  "testTitle": "SL stress test",
+
+  "copilot": {
+    "exePath": "C:\\Users\\mavaca\\AppData\\Local\\Microsoft\\WinGet\\Links\\copilot.exe"
+  },
+
+  "email": {
+    "subjectPattern": "NEW TEST",
+    "toAddress": "mavaca@microsoft.com",
+    "buildIdRegex": "NEW TEST (.+)"
+  },
+
+  "test": {
+    "scriptPath": "scripts/test.ps1",
+    "argumentsTemplate": "-BuildId {buildId}",
+    "timeoutMinutes": 60
+  },
+
+  "relayTest": {
+    "controlScriptPath": "C:\\hackathon_tests\\pico_relay_control\\host_control.py",
+    "pythonExe": "py",
+    "comPort": "COM5",
+    "toggleDurationSeconds": 3,
+    "toggleLoops": 20
+  },
+
+  "samLog": {
+    "scriptPath": "C:\\hackathon_tests\\pico_relay_control\\tools\\Read-SamLog_ps_v2\\Read-SamLog.ps1",
+    "powershellExe": "powershell.exe",
+    "comPort": "COM8",
+    "samExportPath": "C:\\Users\\mavaca\\Downloads\\BAA_1064_Release_TestSigned_SAM_EXPORT_440b8579_6.92.22.xml",
+    "connectMessageFilters": ["surflink: Connected", "SurflinkDeviceState::ConnectedAsConsumer", "Charger: Consumer Power connected"],
+    "disconnectMessageFilters": ["surflink: Disconnected"],
+    "matchMode": "all",
+    "startupWaitSeconds": 3,
+    "chargerConnectTimeoutSeconds": 10,
+    "chargerDisconnectTimeoutSeconds": 10
+  },
+
+  "reply": {
+    "replyAll": true,
+    "attachTestOutputLog": true
+  },
+
+  "schedule": {
+    "pollIntervalHours": 4,
+    "cycleTimeoutMinutes": 120,
+    "maxConsecutiveFailures": 5
+  },
+
+  "service": {
+    "autoStartOnBoot": true,
+    "accountName": null,
+    "accountPasswordEnvVar": null
+  },
+
+  "worker": {
+    "taskName": "BuildEmailWatcherWorker",
+    "jobsDir": "jobs",
+    "heartbeatIntervalSeconds": 30,
+    "heartbeatMaxAgeSeconds": 120,
+    "jobPollIntervalSeconds": 5,
+    "completedJobMaxAgeHours": 24
+  },
+
+  "paths": {
+    "stateFile": "state/last_processed_build.json",
+    "runsDir": "runs",
+    "logsDir": "logs",
+    "logMaxBytes": 10485760
+  },
+
+  "reportTemplate": {
+    "title": "{testTitle} - Build {buildId}",
+    "sections": [
+      "## {testTitle} - Build {buildId}",
+      "",
+      "**Program:** {programName}",
+      "**Build:** {buildId}",
+      "**Status:** {status}",
+      "**Run started:** {startTime}",
+      "**Run finished:** {endTime}",
+      "**Duration:** {duration}",
+      "**Exit code:** {exitCode}",
+      "",
+      "### Summary",
+      "{summary}",
+      "",
+      "### Failures",
+      "{failureDetails}",
+      "",
+      "### Full log",
+      "See attached/archived log: {logPath}"
+    ]
+  }
+}

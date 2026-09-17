@@ -1,0 +1,4 @@
+build/**
+!build/**/
+!build/**/pico_relay_com.uf2
+build/_deps/
