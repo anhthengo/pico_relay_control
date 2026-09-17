@@ -2,10 +2,10 @@
 #include <string.h>
 #include "pico/stdlib.h"
 
-#define RELAY_GPIO 15
-#define RELAY_GPIO2 14
-#define RELAY_GPIO3 26
-#define RELAY_GPIO4 27
+#define RELAY_GPIO_POWER 15
+#define RELAY_GPIO_PID 14
+#define RELAY_GPIO_POWER_INVERTED 26
+#define RELAY_GPIO_PID_INVERTED 27
 #define LED_GPIO 25
 #define DEBUGGING_ACCESSORY_DET_INTERRUPT_PIN 28
 #define ACCESSORY_CONNECT_DETECTED_PIN 29
@@ -24,12 +24,21 @@ static void set_relay_counter_enabled(bool enabled) {
     gpio_put(ACCESSORY_CONNECT_DETECTED_PIN, enabled ? 1 : 0);
 }
 
-static void relay_set(bool on) {
+static void relay_power_set(bool on) {
     bool level = on ? RELAY_ACTIVE_LEVEL : !RELAY_ACTIVE_LEVEL;
-    gpio_put(RELAY_GPIO, level);
-    gpio_put(RELAY_GPIO2, level);
-    gpio_put(RELAY_GPIO3, !level);
-    gpio_put(RELAY_GPIO4, !level);
+    gpio_put(RELAY_GPIO_POWER, level);
+    gpio_put(RELAY_GPIO_POWER_INVERTED, !level);
+}
+
+static void relay_pid_set(bool on) {
+    bool level = on ? RELAY_ACTIVE_LEVEL : !RELAY_ACTIVE_LEVEL;
+    gpio_put(RELAY_GPIO_PID, level);
+    gpio_put(RELAY_GPIO_PID_INVERTED, !level);
+}
+
+static void relay_set(bool on) {
+    relay_power_set(on);
+    relay_pid_set(on);
     gpio_put(LED_GPIO, on);
 }
 
@@ -56,14 +65,14 @@ static void command_c_check(bool relay_on) {
 int main(void) {
     stdio_init_all();
 
-    gpio_init(RELAY_GPIO);
-    gpio_set_dir(RELAY_GPIO, GPIO_OUT);
-    gpio_init(RELAY_GPIO2);
-    gpio_set_dir(RELAY_GPIO2, GPIO_OUT);
-    gpio_init(RELAY_GPIO3);
-    gpio_set_dir(RELAY_GPIO3, GPIO_OUT);
-    gpio_init(RELAY_GPIO4);
-    gpio_set_dir(RELAY_GPIO4, GPIO_OUT);
+    gpio_init(RELAY_GPIO_POWER);
+    gpio_set_dir(RELAY_GPIO_POWER, GPIO_OUT);
+    gpio_init(RELAY_GPIO_PID);
+    gpio_set_dir(RELAY_GPIO_PID, GPIO_OUT);
+    gpio_init(RELAY_GPIO_POWER_INVERTED);
+    gpio_set_dir(RELAY_GPIO_POWER_INVERTED, GPIO_OUT);
+    gpio_init(RELAY_GPIO_PID_INVERTED);
+    gpio_set_dir(RELAY_GPIO_PID_INVERTED, GPIO_OUT);
     gpio_init(LED_GPIO);
     gpio_set_dir(LED_GPIO, GPIO_OUT);
 
@@ -81,7 +90,7 @@ int main(void) {
     sleep_ms(1500);
 
     printf("Pico relay controller ready\r\n");
-    printf("Commands: 1/ON, 0/OFF, T/TOGGLE, ?/STATUS, c, s, f, a\r\n");
+    printf("Commands: 1/ON, 0/OFF, 3, T/TOGGLE, ?/STATUS, c, s, f, a\r\n");
 
     bool relay_on = false;
     char command[32];
@@ -119,6 +128,11 @@ int main(void) {
                 delayed_c_check_pending = false;
                 relay_set(false);
                 printf("RELAY OFF\r\n");
+            } else if (!strcmp(command, "3")) {
+                relay_on = true;
+                relay_power_set(true);
+                relay_pid_set(false);
+                printf("RELAY POWER ON / PID OFF\r\n");
             } else if (!strcmp(command, "T") || !strcmp(command, "t") ||
                        !strcmp(command, "TOGGLE") || !strcmp(command, "toggle")) {
                 relay_on = !relay_on;
@@ -148,7 +162,7 @@ int main(void) {
                        (unsigned long)success_count,
                        (unsigned long)fail_count);
             } else {
-                printf("ERROR: use 1, 0, ON, OFF, T, C, S, F, A, or ?\r\n");
+                printf("ERROR: use 1, 0, 3, ON, OFF, T, C, S, F, A, or ?\r\n");
             }
             length = 0;
         } else if (length < sizeof(command) - 1) {
